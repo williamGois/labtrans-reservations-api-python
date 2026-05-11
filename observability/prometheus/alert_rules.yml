@@ -1,0 +1,58 @@
+groups:
+  - name: labtrans-platform
+    rules:
+      - alert: AuthApiDown
+        expr: up{job="auth-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Auth API is down
+
+      - alert: ReservationsApiDown
+        expr: up{job="reservations-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Reservations API is down
+
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) by (service) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High 5xx error rate detected
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High p95 latency detected
+
+      - alert: HighLoginFailureRate
+        expr: rate(auth_login_failure_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Login failures increased
+
+      - alert: HighReservationConflictRate
+        expr: rate(reservations_conflict_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: Reservation schedule conflicts increased
+
+      - alert: JwtValidationFailuresSpike
+        expr: sum(rate(reservations_jwt_validation_failure_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: JWT validation failures increased
