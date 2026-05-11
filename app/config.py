@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     cors_origins: str = Field(
         default="http://localhost:5173,http://127.0.0.1:5173", alias="CORS_ORIGINS"
     )
+    app_environment: str = Field(default="Development", alias="APP_ENVIRONMENT")
+    otel_service_name: str = Field(
+        default="labtrans-reservations-api-python", alias="OTEL_SERVICE_NAME"
+    )
+    otel_exporter_otlp_endpoint: str = Field(
+        default="http://localhost:4317", alias="OTEL_EXPORTER_OTLP_ENDPOINT"
+    )
+    otel_traces_exporter: str = Field(default="none", alias="OTEL_TRACES_EXPORTER")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,12 +1,16 @@
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Location, Reservation, Room
+from app.observability.metrics import RESERVATIONS_CONFLICT_TOTAL
 from app.schemas.reservations import ReservationCreate, ReservationUpdate
 from app.security.jwt import CurrentUser
 
 CONFLICT_MESSAGE = "Ja existe uma reserva para esta sala, local e horario."
+logger = logging.getLogger("reservations.domain")
 
 
 def reservation_query() -> Select[tuple[Reservation]]:
@@ -73,6 +77,14 @@ def find_conflict(
 
 
 def raise_conflict(conflicting: Reservation) -> None:
+    RESERVATIONS_CONFLICT_TOTAL.inc()
+    logger.warning(
+        "Schedule conflict detected.",
+        extra={
+            "event": "reservation_conflict",
+            "statusCode": status.HTTP_409_CONFLICT,
+        },
+    )
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail={"message": CONFLICT_MESSAGE, "conflictingReservationId": conflicting.id},
