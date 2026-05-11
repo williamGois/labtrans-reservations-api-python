@@ -13,7 +13,40 @@ def test_health_check(client):
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] == "ok"
+    assert response.json()["service"] == "labtrans-reservations-api-python"
+
+
+def test_live_health_returns_correlation_id(client):
+    response = client.get("/health/live")
+
+    assert response.status_code == 200
+    assert response.headers["X-Correlation-ID"]
+    assert response.json()["correlationId"]
+
+
+def test_ready_health_returns_database_and_configuration_checks(client):
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json()["checks"] == {"configuration": "ok", "database": "ok"}
+
+
+def test_response_preserves_client_correlation_id(client):
+    response = client.get("/health/live", headers={"X-Correlation-ID": "corr-test-123"})
+
+    assert response.status_code == 200
+    assert response.headers["X-Correlation-ID"] == "corr-test-123"
+    assert response.json()["correlationId"] == "corr-test-123"
+
+
+def test_metrics_endpoint_exposes_prometheus_metrics(client):
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    body = response.text
+    assert "http_requests_total" in body
+    assert "reservations_created_total" in body
 
 
 def test_list_locations_with_valid_token(client, auth_headers):
@@ -41,6 +74,8 @@ def test_missing_token_returns_401(client):
     response = client.get("/api/reservations")
 
     assert response.status_code == 401
+    assert response.json()["title"] == "Unauthorized"
+    assert response.json()["correlationId"]
 
 
 def test_invalid_token_returns_401(client):
@@ -139,6 +174,26 @@ def test_create_reservation_with_conflict_fails(client, auth_headers):
 
     assert response.status_code == 409
     assert response.json()["conflictingReservationId"] == 1
+    assert response.json()["title"] == "Schedule conflict"
+    assert response.json()["correlationId"]
+
+
+def test_conflict_increments_prometheus_metric(client, auth_headers):
+    client.post(
+        "/api/reservations",
+        json=reservation_payload(start="2026-05-18T09:00:00Z", end="2026-05-18T10:00:00Z"),
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/reservations",
+        json=reservation_payload(start="2026-05-18T09:30:00Z", end="2026-05-18T10:30:00Z"),
+        headers=auth_headers,
+    )
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "reservations_conflict_total" in response.text
 
 
 def test_update_reservation_with_conflict_fails(client, auth_headers):
