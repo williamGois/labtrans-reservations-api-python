@@ -9,6 +9,20 @@ on:
 jobs:
   test-quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: reservations_ci
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d reservations_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,3 +49,15 @@ jobs:
 
       - name: Test
         run: python -m pytest --cov=app --cov-report=term-missing
+
+      - name: PostgreSQL migration and integration smoke
+        run: |
+          set -euo pipefail
+          export DATABASE_URL=postgresql+psycopg2://postgres@localhost:5432/reservations_ci
+          export JWT_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          export JWT_ISSUER=labtrans-auth-api
+          export JWT_AUDIENCE=labtrans-reservas
+          export CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+          python -m alembic upgrade head
+          python -m app.seed
+          python scripts/ci_postgres_smoke.py
