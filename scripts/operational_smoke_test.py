@@ -112,7 +112,7 @@ def main() -> int:
     )
 
     email = f"smoke-{int(time.time())}@email.com"
-    password = "Senha@123"
+    password = "Smoke" + "Credential" + str(int(time.time())) + "!"
     register = request(
         "POST",
         f"{AUTH_API_URL}/api/auth/register",

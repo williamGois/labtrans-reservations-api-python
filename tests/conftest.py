@@ -1,6 +1,7 @@
 from collections.abc import Generator
 from datetime import datetime, timedelta, UTC
 import os
+import secrets
 
 import jwt
 import pytest
@@ -9,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-TEST_SECRET = "uma-chave-forte-para-desenvolvimento-local-123"
+TEST_SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(48)
 os.environ.setdefault("JWT_SECRET", TEST_SECRET)
 os.environ.setdefault("JWT_ISSUER", "labtrans-auth-api")
 os.environ.setdefault("JWT_AUDIENCE", "labtrans-reservas")

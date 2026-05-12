@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = Field(
-        default="postgresql+psycopg2://postgres:postgres@localhost:5434/reservations_db",
+        default="postgresql+psycopg2://postgres@localhost:5434/reservations_db",
         alias="DATABASE_URL",
     )
     jwt_secret: str = Field(alias="JWT_SECRET", min_length=32)
