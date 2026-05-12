@@ -20,8 +20,8 @@ Microsservico FastAPI responsavel por locais, salas, reservas, validacao local d
 Configure no ambiente ou copie `.env.example`:
 
 ```env
-DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5434/reservations_db
-JWT_SECRET=change-me-in-development-min-32-bytes
+DATABASE_URL=postgresql+psycopg2://postgres@localhost:5434/reservations_db
+JWT_SECRET=
 JWT_ISSUER=labtrans-auth-api
 JWT_AUDIENCE=labtrans-reservas
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
@@ -31,7 +31,7 @@ OTEL_TRACES_EXPORTER=none
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
-`JWT_SECRET`, `JWT_ISSUER` e `JWT_AUDIENCE` precisam ser iguais aos usados pela Auth API. O secret acima e apenas placeholder.
+`JWT_SECRET`, `JWT_ISSUER` e `JWT_AUDIENCE` precisam ser iguais aos usados pela Auth API. Gere o `JWT_SECRET` localmente e nao versione `.env` real.
 
 ## Instalar
 
@@ -70,6 +70,14 @@ URLs:
 .\.venv\Scripts\python.exe -m black --check app tests alembic scripts
 .\.venv\Scripts\python.exe -m bandit -r app
 ```
+
+Smoke de integracao usado no CI, com Alembic, seed e CRUD em PostgreSQL real:
+
+```powershell
+python scripts\ci_postgres_smoke.py
+```
+
+O workflow `.github/workflows/ci.yml` sobe `postgres:16-alpine`, executa `alembic upgrade head`, roda o seed, cria reserva, valida conflito `409`, edita, exclui e confere metricas Prometheus.
 
 Cenarios cobertos:
 
